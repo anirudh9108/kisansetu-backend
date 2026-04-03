@@ -1,9 +1,12 @@
 import { useContext, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
 import { FarmerContext } from '../../contexts/FarmerContext';
+import { Theme } from '../../constants/Theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useApiCall } from '../../hooks/useApiCall';
+
+const { width } = Dimensions.get('window');
 
 export default function Home() {
   const { farmer, t, loading } = useContext(FarmerContext);
@@ -22,58 +25,172 @@ export default function Home() {
   const weather = weatherApi.data;
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.greeting}>{t.greeting?.replace('%{name}', farmer.name) || ''}</Text>
-      <Text style={styles.date}>{today}</Text>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Dynamic Greeting */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.greeting}>{t.greeting?.replace('%{name}', farmer.name) || `Sat Sri Akal, ${farmer.name}`}</Text>
+          <Text style={styles.date}>{today}</Text>
+        </View>
+        <TouchableOpacity style={styles.profileCircle}>
+          <Ionicons name="person" size={24} color={Theme.colors.primary} />
+        </TouchableOpacity>
+      </View>
 
-      {weather && (
-        <View style={styles.weatherCard}>
-          <Ionicons name="partly-sunny" size={32} color="#EF9F27" />
-          <View style={{ marginLeft: 15, flex: 1 }}>
-            <Text style={styles.temp}>{weather.temperature_celsius}°C - {weather.condition}</Text>
-            <Text style={styles.tip}>{weather.farming_tip}</Text>
+      {/* Weather & Tip Widget */}
+      {weather ? (
+        <View style={styles.weatherWidget}>
+          <View style={styles.weatherMain}>
+            <Ionicons name="partly-sunny" size={48} color={Theme.colors.accent} />
+            <View style={{ marginLeft: 15 }}>
+              <Text style={styles.temp}>{weather.temperature_celsius}°C</Text>
+              <Text style={styles.weatherCond}>{weather.condition}</Text>
+            </View>
           </View>
+          <View style={styles.divider} />
+          <Text style={styles.weatherTip}>{weather.farming_tip}</Text>
+        </View>
+      ) : (
+        <View style={[styles.weatherWidget, { height: 100, justifyContent: 'center' }]}>
+          <Text style={{ textAlign: 'center', color: '#666' }}>Fetching local weather...</Text>
         </View>
       )}
 
+      {/* Critical Actions */}
+      <Text style={styles.sectionTitle}>Smart Insights</Text>
       <View style={styles.grid}>
-        <TouchableOpacity style={[styles.card, { backgroundColor: '#e9f7ea' }]} onPress={() => navigateTo('schemes')}>
-          <Ionicons name="document-text" size={40} color="#1D9E75" />
-          <Text style={styles.cardText}>{t.schemes}</Text>
+        <TouchableOpacity 
+          style={[styles.bigCard, { backgroundColor: Theme.colors.primary }]} 
+          onPress={() => navigateTo('disease')}
+        >
+          <Ionicons name="scan-circle" size={42} color="#FFF" />
+          <View style={styles.bigCardText}>
+            <Text style={styles.bigCardTitle}>{t.disease || "AI Scan"}</Text>
+            <Text style={styles.bigCardSub}>Detect leaf diseases instantly</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.5)" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.card, { backgroundColor: '#fff3e0' }]} onPress={() => navigateTo('crops')}>
-          <Ionicons name="leaf" size={40} color="#EF9F27" />
-          <Text style={styles.cardText}>{t.cropPlan}</Text>
-        </TouchableOpacity>
+        <View style={styles.row}>
+           <TouchableOpacity style={[styles.smallCard, { backgroundColor: '#FFF' }]} onPress={() => navigateTo('mandi')}>
+              <View style={[styles.iconBox, { backgroundColor: '#E3F2FD' }]}>
+                <Ionicons name="bar-chart" size={24} color="#378ADD" />
+              </View>
+              <Text style={styles.smallCardTitle}>{t.mandi || "Mandi Prices"}</Text>
+              <Text style={styles.smallCardSub}>Daily updates</Text>
+           </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.card, { backgroundColor: '#ffebee' }]} onPress={() => navigateTo('disease')}>
-          <Ionicons name="scan-circle" size={40} color="#E24B4A" />
-          <Text style={styles.cardText}>{t.disease}</Text>
-        </TouchableOpacity>
+           <TouchableOpacity style={[styles.smallCard, { backgroundColor: '#FFF' }]} onPress={() => navigateTo('crops')}>
+              <View style={[styles.iconBox, { backgroundColor: '#FFF3E0' }]}>
+                <Ionicons name="leaf" size={24} color="#EF9F27" />
+              </View>
+              <Text style={styles.smallCardTitle}>{t.cropPlan || "Crop Plan"}</Text>
+              <Text style={styles.smallCardSub}>Recommendations</Text>
+           </TouchableOpacity>
+        </View>
 
-        <TouchableOpacity style={[styles.card, { backgroundColor: '#e3f2fd' }]} onPress={() => navigateTo('mandi')}>
-          <Ionicons name="stats-chart" size={40} color="#378ADD" />
-          <Text style={styles.cardText}>{t.mandi}</Text>
-        </TouchableOpacity>
+        <View style={styles.row}>
+           <TouchableOpacity style={[styles.smallCard, { backgroundColor: '#FFF' }]} onPress={() => navigateTo('schemes')}>
+              <View style={[styles.iconBox, { backgroundColor: '#E8F5E9' }]}>
+                <Ionicons name="document-text" size={24} color="#1D9E75" />
+              </View>
+              <Text style={styles.smallCardTitle}>{t.schemes || "Govt Schemes"}</Text>
+              <Text style={styles.smallCardSub}>Check eligibility</Text>
+           </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.card, { backgroundColor: '#e0f2f1' }]} onPress={() => navigateTo('water')}>
-          <Ionicons name="water" size={40} color="#00897B" />
-          <Text style={styles.cardText}>{t.water}</Text>
-        </TouchableOpacity>
+           <TouchableOpacity style={[styles.smallCard, { backgroundColor: '#FFF' }]} onPress={() => navigateTo('water')}>
+              <View style={[styles.iconBox, { backgroundColor: '#E0F2F1' }]}>
+                <Ionicons name="water" size={24} color="#00897B" />
+              </View>
+              <Text style={styles.smallCardTitle}>{t.water || "Water Usage"}</Text>
+              <Text style={styles.smallCardSub}>Smart track</Text>
+           </TouchableOpacity>
+        </View>
+
+        <View style={{ height: 100 }} /> 
       </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAF5', padding: 20 },
-  greeting: { fontSize: 24, fontWeight: 'bold', color: '#1A1A2E', marginTop: 10 },
-  date: { fontSize: 16, color: '#666', marginBottom: 20 },
-  weatherCard: { flexDirection: 'row', backgroundColor: '#fff', padding: 20, borderRadius: 12, marginBottom: 25, elevation: 2, alignItems: 'center' },
-  temp: { fontSize: 18, fontWeight: 'bold', color: '#1A1A2E' },
-  tip: { fontSize: 14, color: '#1D9E75', marginTop: 5 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  card: { width: '48%', padding: 20, borderRadius: 16, alignItems: 'center', marginBottom: 15, elevation: 1 },
-  cardText: { marginTop: 10, fontSize: 16, fontWeight: 'bold', color: '#1A1A2E', textAlign: 'center' }
+  container: { flex: 1, backgroundColor: Theme.colors.background, padding: Theme.spacing.lg },
+  header: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    marginTop: 60,
+    marginBottom: 24
+  },
+  greeting: { 
+    fontSize: Theme.typography.h2.fontSize, 
+    fontWeight: '800', 
+    color: Theme.colors.text 
+  },
+  date: { 
+    fontSize: 14, 
+    color: Theme.colors.textMuted, 
+    marginTop: 4 
+  },
+  profileCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Theme.colors.cardShadow
+  },
+  weatherWidget: {
+    backgroundColor: Theme.colors.surface,
+    borderRadius: Theme.borderRadius.lg,
+    padding: 20,
+    marginBottom: 24,
+    ...Theme.colors.cardShadow,
+    borderWidth: 1,
+    borderColor: Theme.colors.border
+  },
+  weatherMain: { flexDirection: 'row', alignItems: 'center' },
+  temp: { fontSize: 28, fontWeight: '800', color: Theme.colors.text },
+  weatherCond: { fontSize: 16, color: Theme.colors.textMuted, marginTop: -4 },
+  divider: { height: 1, backgroundColor: Theme.colors.border, marginVertical: 15 },
+  weatherTip: { fontSize: 15, lineHeight: 22, color: Theme.colors.text, fontStyle: 'italic' },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: Theme.colors.text,
+    marginBottom: 16
+  },
+  grid: { gap: 12 },
+  bigCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    borderRadius: Theme.borderRadius.lg,
+    marginBottom: 8,
+    ...Theme.colors.cardShadow
+  },
+  bigCardText: { flex: 1, marginLeft: 16 },
+  bigCardTitle: { color: '#FFF', fontSize: 18, fontWeight: '800' },
+  bigCardSub: { color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 2 },
+  row: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+  smallCard: {
+    flex: 1,
+    padding: 16,
+    borderRadius: Theme.borderRadius.md,
+    backgroundColor: '#FFF',
+    ...Theme.colors.cardShadow,
+    borderWidth: 1,
+    borderColor: Theme.colors.border
+  },
+  iconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12
+  },
+  smallCardTitle: { fontSize: 15, fontWeight: '700', color: Theme.colors.text },
+  smallCardSub: { fontSize: 12, color: Theme.colors.textMuted, marginTop: 2 }
 });

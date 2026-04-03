@@ -1,19 +1,27 @@
-const tintColorLight = '#2f95dc';
-const tintColorDark = '#fff';
+const tintColorLight = '#1A2F1A'; // Forest Green
+const tintColorDark = '#D1E8D1';  // Mint Accent
 
 export default {
   light: {
-    text: '#000',
-    background: '#fff',
+    text: '#1C1C1C',          // Charcoal
+    background: '#F3F4F1',    // Paper White
     tint: tintColorLight,
-    tabIconDefault: '#ccc',
+    tabIconDefault: '#9BA39B',
     tabIconSelected: tintColorLight,
+    card: '#FFFFFF',
+    border: '#E0E5E0',
+    mint: '#D1E8D1',
+    forest: '#1A2F1A',
   },
   dark: {
-    text: '#fff',
-    background: '#000',
+    text: '#F3F4F1',
+    background: '#121912',    // Deep Dark Green
     tint: tintColorDark,
-    tabIconDefault: '#ccc',
+    tabIconDefault: '#4A554A',
     tabIconSelected: tintColorDark,
+    card: '#1A2F1A',
+    border: '#2A3A2A',
+    mint: '#D1E8D1',
+    forest: '#1A2F1A',
   },
 };

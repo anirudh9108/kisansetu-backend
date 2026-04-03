@@ -1,4 +1,4 @@
-﻿import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { FarmerContext } from '../../contexts/FarmerContext';
 import { useApiCall } from '../../hooks/useApiCall';
@@ -33,10 +33,10 @@ export default function Schemes() {
           filtered.map((scheme, i) => (
             <View key={i} style={styles.card}>
               <Text style={styles.title}>{scheme.name}</Text>
-              <Text style={styles.benefit}>{scheme.benefit_amount}</Text>
-              <Text style={styles.desc} numberOfLines={2}>{scheme.description}</Text>
-              <TouchableOpacity style={styles.btn} onPress={() => openLink(scheme.apply_url)}>
-                <Text style={styles.btnText}>{t.apply}</Text>
+              <Text style={styles.benefit}>{scheme.benefit}</Text>
+              <Text style={styles.desc} numberOfLines={3}>{scheme.description}</Text>
+              <TouchableOpacity style={styles.btn} onPress={() => openLink(scheme.applyUrl)}>
+                <Text style={styles.btnText}>{t.apply || 'Apply'}</Text>
               </TouchableOpacity>
             </View>
           ))

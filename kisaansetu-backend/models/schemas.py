@@ -1,16 +1,16 @@
-﻿from pydantic import BaseModel
+from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 
 class FarmerProfile(BaseModel):
     uid: str
-    name: str
-    district: str
-    category: str
-    landAcres: float
-    soilType: str
-    waterSource: str
-    crops: List[str]
+    name: Optional[str] = "Farmer"
+    district: Optional[str] = "Unknown"
+    category: Optional[str] = "General"
+    landAcres: Optional[float] = 0.0
+    soilType: Optional[str] = "Normal"
+    waterSource: Optional[str] = "Canal"
+    crops: Optional[List[str]] = []
     createdAt: Optional[datetime] = None
 
 class IrrigationLogRequest(BaseModel):

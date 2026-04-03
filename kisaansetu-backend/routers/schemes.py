@@ -1,20 +1,19 @@
-﻿from fastapi import APIRouter
+from fastapi import APIRouter
 from models.schemas import SchemeEligibilityRequest
-from services.firebase_client import get_db
+from services.mongodb_client import get_mongodb
 
 router = APIRouter(prefix="/api/schemes", tags=["schemes"])
 
 @router.post("/eligible")
 async def get_eligible_schemes(req: SchemeEligibilityRequest):
-    db = get_db()
-    schemes_ref = db.collection(u'schemes')
-    docs = schemes_ref.stream()
+    db = get_mongodb()
+    cursor = db.schemes.find({})
+    docs = await cursor.to_list(length=100)
     
     eligible = []
     
-    for doc in docs:
-        scheme = doc.to_dict()
-        scheme['id'] = doc.id
+    for scheme in docs:
+        scheme['id'] = str(scheme.get('_id'))
         
         # Check land condition
         min_land = scheme.get('minLandAcres', 0)
@@ -34,9 +33,7 @@ async def get_eligible_schemes(req: SchemeEligibilityRequest):
             
         eligible.append(scheme)
         
-    # Sort by benefit descending. 
-    # Since benefit format in the requirement seems like descriptive strings or amounts,
-    # let's try a safe sort if there's a numeric benefitValue, or just default.
+    # Sort by benefit descending (numeric value)
     eligible.sort(key=lambda x: x.get('benefitValue', 0), reverse=True)
     
     return {"schemes": eligible, "count": len(eligible)}

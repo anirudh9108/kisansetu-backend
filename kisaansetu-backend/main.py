@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
@@ -6,25 +6,26 @@ import os
 # Load Environment Variables
 load_dotenv()
 
-# Initialize Firebase before mapping routers that may need get_db at startup
-from services.firebase_client import get_db
-try:
-    get_db()
-except ValueError as e:
-    print(f"Warning on startup: {e}")
+app = FastAPI(title="KisaanSetu Backend API", version="1.0.0")
+
+# Initialize Database
+from services.mongodb_client import MongoDBClient
+
+@app.on_event("startup")
+async def startup_db_client():
+    await MongoDBClient.connect()
+
+@app.on_event("shutdown")
+async def shutdown_db_client():
+    await MongoDBClient.close()
 
 # Routers
 from routers import farmer, schemes, crops, disease, mandi, water, weather
 
-app = FastAPI(title="KisaanSetu Backend API", version="1.0.0")
-
 # CORS Setup
-origins_str = os.environ.get("ALLOWED_ORIGINS", "")
-origins = [origin.strip() for origin in origins_str.split(",") if origin.strip()]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins if origins else ["*"],
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

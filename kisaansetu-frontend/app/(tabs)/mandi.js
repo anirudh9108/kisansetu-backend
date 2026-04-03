@@ -51,16 +51,22 @@ export default function Mandi() {
             </View>
           )}
 
-          <View style={styles.chartCard}>
-            <Text style={styles.chartTitle}>7-Day Trend ({selectedCrop})</Text>
-            <View pointerEvents="none" style={{alignItems: 'center', marginLeft: -20}}>
-              <VictoryChart theme={VictoryTheme.material} height={200} padding={{ top: 20, bottom: 40, left: 60, right: 20 }}>
-                <VictoryAxis tickFormat={(t) => `Day ${Math.floor(t)}`} style={{tickLabels: {fontSize: 10}}} />
-                <VictoryAxis dependentAxis tickFormat={(x) => `₹${x}`} style={{tickLabels: {fontSize: 10}}}/>
-                <VictoryLine data={trendData} style={{ data: { stroke: "#378ADD", strokeWidth: 3 } }} />
-              </VictoryChart>
+          {VictoryChart && VictoryLine && VictoryAxis ? (
+            <View style={styles.chartCard}>
+              <Text style={styles.chartTitle}>7-Day Trend ({selectedCrop})</Text>
+              <View pointerEvents="none" style={{alignItems: 'center', marginLeft: -20}}>
+                <VictoryChart height={200} padding={{ top: 20, bottom: 40, left: 60, right: 20 }}>
+                  <VictoryAxis tickFormat={(t) => `Day ${Math.floor(t)}`} style={{tickLabels: {fontSize: 10}}} />
+                  <VictoryAxis dependentAxis tickFormat={(x) => `₹${x}`} style={{tickLabels: {fontSize: 10}}}/>
+                  <VictoryLine data={trendData} style={{ data: { stroke: "#378ADD", strokeWidth: 3 } }} />
+                </VictoryChart>
+              </View>
             </View>
-          </View>
+          ) : (
+            <View style={styles.chartCard}>
+              <Text style={styles.chartTitle}>Trend visualization loading...</Text>
+            </View>
+          )}
         </>
       )}
     </ScrollView>

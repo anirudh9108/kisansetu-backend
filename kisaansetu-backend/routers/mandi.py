@@ -1,13 +1,13 @@
-﻿from fastapi import APIRouter
+from fastapi import APIRouter
 from services.agmarknet import fetch_agmarknet_prices
-from services.firebase_client import get_db
+from services.mongodb_client import get_mongodb
 from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/api/mandi", tags=["mandi"])
 
 @router.get("/prices")
 async def get_mandi_prices(crop: str, district: str):
-    # 1. Fetch from Agmarknet
+    # 1. Fetch from Agmarknet (API)
     records = await fetch_agmarknet_prices(crop, district)
     
     mandis = []
@@ -27,12 +27,15 @@ async def get_mandi_prices(crop: str, district: str):
                 today = datetime.now()
                 seven_day_prices = [{"date": (today - timedelta(days=i)).strftime("%Y-%m-%d"), "price": float(r.get('modal_price', 0))} for i in range(7)]
     else:
-        # Fallback to Firestore
-        db = get_db()
-        prices_ref = db.collection(u'mandiPrices')
-        docs = prices_ref.where(u'crop', u'==', crop.lower()).where(u'district', u'==', district).order_by(u'date', direction='DESCENDING').limit(30).stream()
+        # 2. Fallback to MongoDB
+        db = get_mongodb()
+        cursor = db.mandiPrices.find({
+            "crop": crop.lower(),
+            "district": district
+        }).sort("date", -1).limit(30)
         
-        db_records = [d.to_dict() for d in docs]
+        db_records = await cursor.to_list(length=30)
+        
         if db_records:
             today_rec = db_records[0]
             yesterday_rec = db_records[1] if len(db_records) > 1 else today_rec
