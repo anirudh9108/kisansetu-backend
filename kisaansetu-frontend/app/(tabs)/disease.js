@@ -26,14 +26,19 @@ export default function Disease() {
   }
 
   const takePicture = async () => {
-    if (cameraRef.current) {
+    if (cameraRef.current && farmer) {
       const p = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.5 });
       setPhoto(p.uri);
+      
       const formData = new FormData();
       formData.append('uid', farmer.uid);
       formData.append('image', { uri: p.uri, type: 'image/jpeg', name: 'crop.jpg' });
+      
       const res = await execute('POST', formData);
-      if (res && res.disease) Speech.speak(`${res.disease}. ${res.treatment?.pesticide || ''}`, { language: t.language === 'en' ? 'en' : 'hi' });
+      if (res && res.disease) {
+        const speechText = `${res.disease.name}. ${res.disease.diagnosis}. Recommended treatment: ${res.treatment ? res.treatment[0] : ''}`;
+        Speech.speak(speechText, { language: t.language === 'en' ? 'en' : 'hi' });
+      }
     }
   };
 
@@ -54,15 +59,42 @@ export default function Disease() {
              <Ionicons name="close-circle" size={40} color="#E24B4A"/>
           </TouchableOpacity>
           {loading ? (
-             <View style={styles.loader}><ActivityIndicator size="large" color="#1D9E75" /><Text style={{ marginTop: 10 }}>{t.loading}</Text></View>
-          ) : error ? <Text style={styles.error}>{t.error}</Text> : result ? (
+             <View style={styles.loader}>
+               <ActivityIndicator size="large" color="#1D9E75" />
+               <Text style={{ marginTop: 10 }}>{t.loading || 'Analyzing...'}</Text>
+             </View>
+          ) : error ? (
+            <Text style={styles.error}>{t.error || 'Failed to analyze leaf'}</Text>
+          ) : result ? (
             <View style={styles.card}>
-              <Text style={styles.diseaseName}>{result.disease}</Text>
-              <View style={styles.badge}><Text style={styles.badgeText}>{result.severity} Severity</Text></View>
-              <Text style={styles.sectionTitle}>Treatment:</Text>
-              {result.treatment ? (
-                <><Text style={styles.text}>Pesticide: {result.treatment.pesticide}</Text><Text style={styles.text}>Dosage: {result.treatment.dosage_per_acre}</Text></>
-              ) : <Text style={styles.text}>No specific treatment found.</Text>}
+              <Text style={styles.diseaseName}>{result.disease?.name}</Text>
+              <View style={[styles.badge, { backgroundColor: result.disease?.isHealthy ? '#C8E6C9' : '#FFCDD2' }]}>
+                <Text style={[styles.badgeText, { color: result.disease?.isHealthy ? '#2E7D32' : '#E24B4A' }]}>
+                  {result.disease?.isHealthy ? 'Healthy' : `${result.disease?.severity} Severity`}
+                </Text>
+              </View>
+              
+              <Text style={styles.diagnosisText}>{result.disease?.diagnosis}</Text>
+
+              <Text style={styles.sectionTitle}>Treatment Plan:</Text>
+              {result.treatment && result.treatment.length > 0 ? (
+                result.treatment.map((step, i) => (
+                  <View key={i} style={styles.stepRow}>
+                    <Text style={styles.stepNumber}>{i+1}.</Text>
+                    <Text style={styles.text}>{step}</Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.text}>No specific treatment steps provided.</Text>
+              )}
+
+              {result.relatedScheme && (
+                <View style={styles.schemeCard}>
+                  <Text style={styles.schemeTitle}>Government Scheme Support:</Text>
+                  <Text style={styles.text}>{result.relatedScheme.name}</Text>
+                  <Text style={styles.benefitText}>Benefit: {result.relatedScheme.benefit}</Text>
+                </View>
+              )}
             </View>
           ) : null}
         </ScrollView>
@@ -83,10 +115,16 @@ const styles = StyleSheet.create({
   loader: { padding: 40, alignItems: 'center' },
   card: { padding: 20, backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, marginTop: -20, minHeight: 400 },
   diseaseName: { fontSize: 24, fontWeight: 'bold', color: '#1A1A2E' },
-  badge: { alignSelf: 'flex-start', padding: 5, paddingHorizontal: 10, backgroundColor: '#FFCDD2', borderRadius: 15, marginVertical: 10 },
-  badgeText: { color: '#E24B4A', fontWeight: 'bold' },
-  sectionTitle: { fontSize: 18, color: '#1D9E75', marginTop: 15, marginBottom: 5, fontWeight: 'bold' },
-  text: { fontSize: 16, color: '#333', marginBottom: 3 },
+  badge: { alignSelf: 'flex-start', padding: 5, paddingHorizontal: 10, borderRadius: 15, marginVertical: 10 },
+  badgeText: { fontWeight: 'bold' },
+  diagnosisText: { fontSize: 16, color: '#555', fontStyle: 'italic', marginBottom: 15 },
+  sectionTitle: { fontSize: 18, color: '#1D9E75', marginTop: 15, marginBottom: 10, fontWeight: 'bold' },
+  stepRow: { flexDirection: 'row', marginBottom: 8, paddingRight: 15 },
+  stepNumber: { width: 25, fontWeight: 'bold', color: '#1D9E75' },
+  text: { fontSize: 16, color: '#333' },
+  schemeCard: { marginTop: 25, padding: 15, backgroundColor: '#F1F8E9', borderRadius: 10, borderLeftWidth: 5, borderLeftColor: '#1D9E75' },
+  schemeTitle: { fontWeight: 'bold', color: '#2E7D32', marginBottom: 5 },
+  benefitText: { color: '#1D9E75', fontWeight: 'bold', marginTop: 5 },
   error: { color: '#E24B4A', textAlign: 'center', marginTop: 20, padding: 20 },
   btn: { backgroundColor: '#1D9E75', padding: 10, margin: 20, borderRadius: 8, alignItems: 'center' },
   btnText: { color: '#FFF', fontWeight: 'bold' }

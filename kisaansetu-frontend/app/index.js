@@ -1,7 +1,11 @@
-﻿import { useState, useContext, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { useState, useContext, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { FarmerContext } from '../contexts/FarmerContext';
+import { Theme } from '../constants/Theme';
+import { Ionicons } from '@expo/vector-icons';
+
+const { width } = Dimensions.get('window');
 
 export default function Onboarding() {
   const { farmer, updateFarmer, language, setLanguage, t, loading } = useContext(FarmerContext);
@@ -10,22 +14,22 @@ export default function Onboarding() {
   const [form, setForm] = useState({
     name: '',
     district: '',
-    landInAcres: '',
+    landAcres: '',
     soilType: 'Loamy',
     waterSource: 'Tubewell',
     category: 'General',
-    primaryCrops: []
+    crops: []
   });
 
   useEffect(() => {
-    if (!loading && farmer && farmer.name) {
+    if (!loading && farmer && farmer.name && farmer.name !== "New Farmer") {
       router.replace('/home');
     }
   }, [farmer, loading]);
 
   const handleSave = async () => {
     if (!form.name || !form.district) {
-      alert('Please fill name and district!');
+      alert('Please fill at least your name and district to get started!');
       return;
     }
     await updateFarmer(form);
@@ -36,53 +40,212 @@ export default function Onboarding() {
     setLanguage(language === 'pa' ? 'hi' : 'pa');
   };
 
-  if (loading || (farmer && farmer.name)) return null;
+  if (loading || (farmer && farmer.name && farmer.name !== "New Farmer")) return null;
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{t.welcome}</Text>
-        <TouchableOpacity style={styles.langBtn} onPress={toggleLanguage}>
-          <Text style={styles.langText}>{language === 'pa' ? 'A/अ' : 'Punjabi'}</Text>
-        </TouchableOpacity>
-      </View>
-      
-      <Text style={styles.subtitle}>{t.setupProfile}</Text>
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+      style={styles.mainContainer}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Hero Section */}
+        <View style={styles.hero}>
+          <View style={styles.heroOverlay}>
+            <View style={styles.headerRow}>
+               <Text style={styles.brand}>KisaanSetu</Text>
+               <TouchableOpacity style={styles.langBadge} onPress={toggleLanguage}>
+                 <Text style={styles.langText}>{language === 'pa' ? 'ਪੰਜਾਬੀ' : 'हिन्दी'}</Text>
+               </TouchableOpacity>
+            </View>
+            <Text style={styles.heroTitle}>{t.welcome || "Welcome to KisaanSetu"}</Text>
+            <Text style={styles.heroSubtitle}>Empowering farmers with AI-driven insights for a sustainable future.</Text>
+          </View>
+        </View>
 
-      <Text style={styles.label}>{t.fullName}</Text>
-      <TextInput style={styles.input} onChangeText={(text) => setForm({...form, name: text})} value={form.name} placeholder={t.fullName} />
+        <View style={styles.formCard}>
+          <Text style={styles.sectionTitle}>{t.setupProfile || "Setup Your Profile"}</Text>
+          
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{t.fullName || "Full Name"}</Text>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="person-outline" size={20} color={Theme.colors.primary} style={styles.inputIcon} />
+              <TextInput 
+                style={styles.input} 
+                onChangeText={(text) => setForm({...form, name: text})} 
+                value={form.name} 
+                placeholder="Enter your name"
+                placeholderTextColor={Theme.colors.textMuted}
+              />
+            </View>
+          </View>
 
-      <Text style={styles.label}>{t.district}</Text>
-      <TextInput style={styles.input} onChangeText={(text) => setForm({...form, district: text})} value={form.district} placeholder={t.district} />
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{t.district || "District"}</Text>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="location-outline" size={20} color={Theme.colors.primary} style={styles.inputIcon} />
+              <TextInput 
+                style={styles.input} 
+                onChangeText={(text) => setForm({...form, district: text})} 
+                value={form.district} 
+                placeholder="E.g. Ludhiana"
+                placeholderTextColor={Theme.colors.textMuted}
+              />
+            </View>
+          </View>
 
-      <Text style={styles.label}>{t.landInAcres}</Text>
-      <TextInput style={styles.input} keyboardType="numeric" onChangeText={(text) => setForm({...form, landInAcres: text})} value={form.landInAcres} placeholder="Ex: 5" />
+          <View style={styles.row}>
+            <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+              <Text style={styles.label}>{t.landInAcres || "Land (Acres)"}</Text>
+              <TextInput 
+                style={styles.inputSmall} 
+                keyboardType="numeric" 
+                onChangeText={(text) => setForm({...form, landAcres: text})} 
+                value={form.landAcres} 
+                placeholder="5"
+                placeholderTextColor={Theme.colors.textMuted}
+              />
+            </View>
+            <View style={[styles.inputGroup, { flex: 1 }]}>
+              <Text style={styles.label}>{t.soilType || "Soil Type"}</Text>
+              <TextInput 
+                style={styles.inputSmall} 
+                onChangeText={(text) => setForm({...form, soilType: text})} 
+                value={form.soilType} 
+                placeholder="Loamy"
+                placeholderTextColor={Theme.colors.textMuted}
+              />
+            </View>
+          </View>
 
-      <Text style={styles.label}>{t.soilType}</Text>
-      <TextInput style={styles.input} onChangeText={(text) => setForm({...form, soilType: text})} value={form.soilType} placeholder={t.soilType} />
-      
-      <Text style={styles.label}>{t.waterSource}</Text>
-      <TextInput style={styles.input} onChangeText={(text) => setForm({...form, waterSource: text})} value={form.waterSource} placeholder={t.waterSource} />
-      
-      <Text style={styles.label}>{t.category}</Text>
-      <TextInput style={styles.input} onChangeText={(text) => setForm({...form, category: text})} value={form.category} placeholder={t.category} />
+          <TouchableOpacity style={styles.primaryButton} onPress={handleSave}>
+            <Text style={styles.buttonText}>{t.saveProfile || "Create Account"}</Text>
+            <Ionicons name="arrow-forward" size={20} color="#FFF" />
+          </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button} onPress={handleSave}>
-        <Text style={styles.buttonText}>{t.saveProfile}</Text>
-      </TouchableOpacity>
-    </ScrollView>
+          <Text style={styles.footerNote}>Your data is securely stored in our encrypted database.</Text>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAF5', padding: 20 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 40 },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#1A1A2E' },
-  subtitle: { fontSize: 18, color: '#1D9E75', marginBottom: 20 },
-  langBtn: { padding: 8, backgroundColor: '#e0e0e0', borderRadius: 8 },
-  langText: { fontSize: 14, fontWeight: 'bold' },
-  label: { fontSize: 16, marginTop: 15, marginBottom: 5, color: '#1A1A2E' },
-  input: { backgroundColor: '#fff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#ccc', fontSize: 16 },
-  button: { backgroundColor: '#1D9E75', padding: 16, borderRadius: 8, alignItems: 'center', marginTop: 30, marginBottom: 40 },
-  buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' }
+  mainContainer: { flex: 1, backgroundColor: Theme.colors.background },
+  scrollContent: { flexGrow: 1 },
+  hero: { 
+    height: 280, 
+    backgroundColor: Theme.colors.primary,
+    justifyContent: 'flex-end'
+  },
+  heroOverlay: {
+    padding: Theme.spacing.lg,
+    paddingBottom: 40,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20
+  },
+  brand: {
+    color: '#FFF',
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: 1
+  },
+  langBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: Theme.borderRadius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)'
+  },
+  langText: { color: '#FFF', fontSize: 12, fontWeight: '700' },
+  heroTitle: { 
+    color: '#FFF', 
+    fontSize: Theme.typography.h1.fontSize, 
+    fontWeight: Theme.typography.h1.fontWeight,
+    marginBottom: 8
+  },
+  heroSubtitle: { 
+    color: 'rgba(255,255,255,0.7)', 
+    fontSize: 14, 
+    lineHeight: 20,
+    maxWidth: '80%'
+  },
+  formCard: {
+    flex: 1,
+    backgroundColor: Theme.colors.background,
+    marginTop: -30,
+    borderTopLeftRadius: Theme.borderRadius.lg,
+    borderTopRightRadius: Theme.borderRadius.lg,
+    padding: Theme.spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: Theme.typography.h2.fontSize,
+    fontWeight: Theme.typography.h2.fontWeight,
+    color: Theme.colors.text,
+    marginBottom: Theme.spacing.lg
+  },
+  inputGroup: { marginBottom: 20 },
+  label: { 
+    fontSize: 14, 
+    fontWeight: '600', 
+    color: Theme.colors.text, 
+    marginBottom: 8,
+    marginLeft: 4
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    borderRadius: Theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    paddingHorizontal: 16,
+    ...Theme.colors.cardShadow
+  },
+  inputIcon: { marginRight: 12 },
+  input: { 
+    flex: 1, 
+    height: 54, 
+    fontSize: 16, 
+    color: Theme.colors.text 
+  },
+  row: { flexDirection: 'row', justifyContent: 'space-between' },
+  inputSmall: {
+    backgroundColor: '#FFF',
+    borderRadius: Theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    paddingHorizontal: 16,
+    height: 54,
+    fontSize: 16,
+    color: Theme.colors.text,
+    ...Theme.colors.cardShadow
+  },
+  primaryButton: {
+    backgroundColor: Theme.colors.primary,
+    height: 60,
+    borderRadius: Theme.borderRadius.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    ...Theme.colors.cardShadow
+  },
+  buttonText: { 
+    color: '#FFF', 
+    fontSize: 18, 
+    fontWeight: '700',
+    marginRight: 10
+  },
+  footerNote: {
+    textAlign: 'center',
+    color: Theme.colors.textMuted,
+    fontSize: 12,
+    marginTop: 30,
+    marginBottom: 40
+  }
 });

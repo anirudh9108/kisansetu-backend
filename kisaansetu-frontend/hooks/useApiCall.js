@@ -1,4 +1,4 @@
-﻿import { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE } from '../config/api';
@@ -12,7 +12,7 @@ export const useApiCall = (endpoint) => {
     setLoading(true);
     setError(null);
     try {
-      const url = \\\\;
+      const url = `${API_BASE}${endpoint}`;
       const config = { method, url, data: payload };
       
       if (payload instanceof FormData) {
@@ -22,11 +22,13 @@ export const useApiCall = (endpoint) => {
       const response = await axios(config);
       setData(response.data);
       
-      await AsyncStorage.setItem(\@cache_\_\\, JSON.stringify(response.data));
+      // Basic cache
+      await AsyncStorage.setItem(`@cache_${endpoint}_${id}`, JSON.stringify(response.data));
       return response.data;
     } catch (err) {
-      console.error(\Error with API \:\, err);
-      const cached = await AsyncStorage.getItem(\@cache_\_\\);
+      console.error(`Error with API ${endpoint}:`, err);
+      // Try fetch from cache
+      const cached = await AsyncStorage.getItem(`@cache_${endpoint}_${id}`);
       if (cached) {
         const parsed = JSON.parse(cached);
         setData(parsed);
