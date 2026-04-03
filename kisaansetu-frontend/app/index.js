@@ -52,12 +52,12 @@ export default function Onboarding() {
         <View style={styles.hero}>
           <View style={styles.heroOverlay}>
             <View style={styles.headerRow}>
-               <Text style={styles.brand}>KisaanSetu</Text>
+               <Text style={styles.brand}>AgriSense</Text>
                <TouchableOpacity style={styles.langBadge} onPress={toggleLanguage}>
                  <Text style={styles.langText}>{language === 'pa' ? 'ਪੰਜਾਬੀ' : 'हिन्दी'}</Text>
                </TouchableOpacity>
             </View>
-            <Text style={styles.heroTitle}>{t.welcome || "Welcome to KisaanSetu"}</Text>
+            <Text style={styles.heroTitle}>{t.welcome || "Welcome to AgriSense"}</Text>
             <Text style={styles.heroSubtitle}>Empowering farmers with AI-driven insights for a sustainable future.</Text>
           </View>
         </View>

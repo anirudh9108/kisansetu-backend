@@ -13,7 +13,7 @@ class MongoDBClient:
     @classmethod
     async def connect(cls):
         uri = os.environ.get("MONGODB_URI")
-        cls.db_name = os.environ.get("MONGODB_DB_NAME", "KisaanSetu")
+        cls.db_name = os.environ.get("MONGODB_DB_NAME", "AgriSense")
         if not uri:
             raise ValueError("MONGODB_URI not set in environment variables")
         

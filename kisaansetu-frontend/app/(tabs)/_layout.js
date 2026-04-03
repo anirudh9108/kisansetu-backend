@@ -29,7 +29,7 @@ export default function TabLayout() {
               <Ionicons name={focused ? "home" : "home-outline"} size={24} color={color} />
             </View>
           ), 
-          headerTitle: 'KisaanSetu' 
+          headerTitle: 'AgriSense' 
         }} 
       />
       <Tabs.Screen 

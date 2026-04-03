@@ -1,4 +1,4 @@
-﻿export default {
+export default {
   // Common
   loading: "ਜਾਂਚ ਹੋ ਰਹੀ ਹੈ...",
   apply: "ਅਪਲਾਈ ਕਰੋ",
@@ -7,7 +7,7 @@
   offline: "ਔਫਲਾਈਨ ਡੇਟਾ",
 
   // Onboarding
-  welcome: "ਕਿਸਾਨ ਸੇਤੂ ਵਿੱਚ ਤੁਹਾਡਾ ਸਵਾਗਤ ਹੈ",
+  welcome: "AgriSense ਵਿੱਚ ਤੁਹਾਡਾ ਸਵਾਗਤ ਹੈ",
   setupProfile: "ਆਪਣਾ ਪ੍ਰੋਫਾਈਲ ਬਣਾਓ",
   fullName: "ਪੂਰਾ ਨਾਮ",
   district: "ਜ਼ਿਲ੍ਹਾ",

@@ -6,7 +6,7 @@ import os
 # Load Environment Variables
 load_dotenv()
 
-app = FastAPI(title="KisaanSetu Backend API", version="1.0.0")
+app = FastAPI(title="AgriSense Backend API", version="1.0.0")
 
 # Initialize Database
 from services.mongodb_client import MongoDBClient
@@ -42,4 +42,4 @@ app.include_router(weather.router)
 
 @app.get("/")
 def root():
-    return {"message": "Welcome to the KisaanSetu API"}
+    return {"message": "Welcome to the AgriSense API"}

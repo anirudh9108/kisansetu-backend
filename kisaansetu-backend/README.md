@@ -1,6 +1,6 @@
-﻿# KisaanSetu Backend
+# AgriSense Backend
 
-This is the FastAPI backend for KisaanSetu.
+This is the FastAPI backend for AgriSense.
 
 ## Setup Requirements
 Python 3.11+ is recommended.
