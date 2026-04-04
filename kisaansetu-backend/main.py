@@ -1,41 +1,37 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from contextlib import asynccontextmanager
 import os
 
+# Load Environment Variables
 load_dotenv()
 
+app = FastAPI(title="AgriSense Backend API", version="1.0.0")
+
+# Initialize Database
 from services.mongodb_client import MongoDBClient
-from services.vector_store import get_collections
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Setup MongoDB
+@app.on_event("startup")
+async def startup_db_client():
     await MongoDBClient.connect()
-    
-    # Warm up Vector DB
-    try:
-        collections = get_collections()
-        print(f"Vector DB ready: {len(collections)} collections")
-    except Exception as e:
-        print(f"Vector DB startup failed: {e}")
 
-    yield
+@app.on_event("shutdown")
+async def shutdown_db_client():
     await MongoDBClient.close()
 
-app = FastAPI(title="KisaanSetu Backend API", version="1.0.0", lifespan=lifespan)
+# Routers
+from routers import farmer, schemes, crops, disease, mandi, water, weather
 
-# CORS - allow all origins for dev
+# CORS Setup
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?",
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-from routers import farmer, schemes, crops, disease, mandi, water, weather, kisan_ai
+# Register Routers
 app.include_router(farmer.router)
 app.include_router(schemes.router)
 app.include_router(crops.router)
@@ -43,8 +39,7 @@ app.include_router(disease.router)
 app.include_router(mandi.router)
 app.include_router(water.router)
 app.include_router(weather.router)
-app.include_router(kisan_ai.router, prefix="/api/kisan-ai")
 
 @app.get("/")
 def root():
-    return {"message": "Welcome to the KisaanSetu API"}
+    return {"message": "Welcome to the AgriSense API"}

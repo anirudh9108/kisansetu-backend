@@ -1,178 +1,251 @@
 import { useState, useContext, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, SafeAreaView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Theme } from '../constants/theme';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FarmerContext } from '../contexts/FarmerContext';
+import { Theme } from '../constants/Theme';
+import { Ionicons } from '@expo/vector-icons';
 
-export default function LoginScreen() {
+const { width } = Dimensions.get('window');
+
+export default function Onboarding() {
+  const { farmer, updateFarmer, language, setLanguage, t, loading } = useContext(FarmerContext);
   const router = useRouter();
-  const { farmer, loading } = useContext(FarmerContext);
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [authChecking, setAuthChecking] = useState(true);
+
+  const [form, setForm] = useState({
+    name: '',
+    district: '',
+    landAcres: '',
+    soilType: 'Loamy',
+    waterSource: 'Tubewell',
+    category: 'General',
+    crops: []
+  });
 
   useEffect(() => {
-    // If the user already has a configured profile, skip onboarding and login
-    const checkSkip = async () => {
-       const isLogged = await AsyncStorage.getItem('@user_logged_in');
-       if (isLogged === 'true') {
-         if (!loading && farmer && farmer.name && farmer.name !== "New Farmer") {
-            router.replace('/home');
-         } else {
-            router.replace('/onboarding');
-         }
-       }
-       setAuthChecking(false);
-    }
-    checkSkip();
-  }, [farmer, loading]);
-
-  const handleLogin = async () => {
-    if (!phone || phone.length < 10) {
-      alert("Please enter a valid 10-digit phone number.");
-      return;
-    }
-    await AsyncStorage.setItem('@user_logged_in', 'true');
-    
-    // Check if farmer profile exists
     if (!loading && farmer && farmer.name && farmer.name !== "New Farmer") {
       router.replace('/home');
-    } else {
-      router.replace('/onboarding');
     }
+  }, [farmer, loading]);
+
+  const handleSave = async () => {
+    if (!form.name || !form.district) {
+      alert('Please fill at least your name and district to get started!');
+      return;
+    }
+    await updateFarmer(form);
+    router.replace('/home');
   };
 
-  if (authChecking) return null;
+  const toggleLanguage = () => {
+    setLanguage(language === 'pa' ? 'hi' : 'pa');
+  };
+
+  if (loading || (farmer && farmer.name && farmer.name !== "New Farmer")) return null;
 
   return (
-    <LinearGradient 
-      colors={[Theme.colors.primary, Theme.colors.secondary]} 
-      style={styles.container}
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+      style={styles.mainContainer}
     >
-      <SafeAreaView style={{ flex: 1 }}>
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-          style={styles.keyboardView}
-        >
-          {/* Logo / Brand Section */}
-          <View style={styles.brandSection}>
-             <Ionicons name="leaf" size={64} color={Theme.colors.accent} style={{ marginBottom: 16 }} />
-             <Text style={styles.brandTitle}>AgriSense</Text>
-             <Text style={styles.brandSubtitle}>Empowering Agricultural Innovation</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Hero Section */}
+        <View style={styles.hero}>
+          <View style={styles.heroOverlay}>
+            <View style={styles.headerRow}>
+               <Text style={styles.brand}>AgriSense</Text>
+               <TouchableOpacity style={styles.langBadge} onPress={toggleLanguage}>
+                 <Text style={styles.langText}>{language === 'pa' ? 'ਪੰਜਾਬੀ' : 'हिन्दी'}</Text>
+               </TouchableOpacity>
+            </View>
+            <Text style={styles.heroTitle}>{t.welcome || "Welcome to AgriSense"}</Text>
+            <Text style={styles.heroSubtitle}>Empowering farmers with AI-driven insights for a sustainable future.</Text>
+          </View>
+        </View>
+
+        <View style={styles.formCard}>
+          <Text style={styles.sectionTitle}>{t.setupProfile || "Setup Your Profile"}</Text>
+          
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{t.fullName || "Full Name"}</Text>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="person-outline" size={20} color={Theme.colors.primary} style={styles.inputIcon} />
+              <TextInput 
+                style={styles.input} 
+                onChangeText={(text) => setForm({...form, name: text})} 
+                value={form.name} 
+                placeholder="Enter your name"
+                placeholderTextColor={Theme.colors.textMuted}
+              />
+            </View>
           </View>
 
-          {/* Login Card */}
-          <View style={styles.loginCard}>
-             <Text style={styles.welcomeText}>Welcome Back</Text>
-             <Text style={styles.promptText}>Sign in to your account</Text>
-
-             <View style={styles.inputGroup}>
-                <Text style={styles.label}>Phone Number</Text>
-                <View style={styles.inputWrapper}>
-                  <Ionicons name="call-outline" size={20} color={Theme.colors.primary} style={styles.inputIcon} />
-                  <TextInput 
-                    style={styles.input}
-                    placeholder="Enter mobile number"
-                    placeholderTextColor={Theme.colors.textMuted}
-                    keyboardType="phone-pad"
-                    value={phone}
-                    onChangeText={setPhone}
-                  />
-                </View>
-             </View>
-
-             <View style={styles.inputGroup}>
-                <Text style={styles.label}>Password / OTP</Text>
-                <View style={styles.inputWrapper}>
-                  <Ionicons name="lock-closed-outline" size={20} color={Theme.colors.primary} style={styles.inputIcon} />
-                  <TextInput 
-                    style={styles.input}
-                    placeholder="Enter secure PIN"
-                    placeholderTextColor={Theme.colors.textMuted}
-                    secureTextEntry
-                    value={password}
-                    onChangeText={setPassword}
-                  />
-                </View>
-             </View>
-
-             <TouchableOpacity style={styles.forgotBtn}>
-               <Text style={styles.forgotText}>Forgot PIN?</Text>
-             </TouchableOpacity>
-
-             <TouchableOpacity style={styles.loginBtn} onPress={handleLogin} activeOpacity={0.8}>
-                <LinearGradient 
-                  colors={Theme.colors.gradientAccent} 
-                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                  style={styles.gradientBtn}
-                >
-                  <Text style={styles.loginBtnText}>Secure Login</Text>
-                  <Ionicons name="arrow-forward" size={20} color="#FFF" />
-                </LinearGradient>
-             </TouchableOpacity>
-
-             <View style={styles.registerWrap}>
-                <Text style={styles.noAccount}>Don't have an account? </Text>
-                <TouchableOpacity onPress={() => router.replace('/onboarding')}>
-                  <Text style={styles.registerLink}>Register Now</Text>
-                </TouchableOpacity>
-             </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{t.district || "District"}</Text>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="location-outline" size={20} color={Theme.colors.primary} style={styles.inputIcon} />
+              <TextInput 
+                style={styles.input} 
+                onChangeText={(text) => setForm({...form, district: text})} 
+                value={form.district} 
+                placeholder="E.g. Ludhiana"
+                placeholderTextColor={Theme.colors.textMuted}
+              />
+            </View>
           </View>
 
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </LinearGradient>
+          <View style={styles.row}>
+            <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+              <Text style={styles.label}>{t.landInAcres || "Land (Acres)"}</Text>
+              <TextInput 
+                style={styles.inputSmall} 
+                keyboardType="numeric" 
+                onChangeText={(text) => setForm({...form, landAcres: text})} 
+                value={form.landAcres} 
+                placeholder="5"
+                placeholderTextColor={Theme.colors.textMuted}
+              />
+            </View>
+            <View style={[styles.inputGroup, { flex: 1 }]}>
+              <Text style={styles.label}>{t.soilType || "Soil Type"}</Text>
+              <TextInput 
+                style={styles.inputSmall} 
+                onChangeText={(text) => setForm({...form, soilType: text})} 
+                value={form.soilType} 
+                placeholder="Loamy"
+                placeholderTextColor={Theme.colors.textMuted}
+              />
+            </View>
+          </View>
+
+          <TouchableOpacity style={styles.primaryButton} onPress={handleSave}>
+            <Text style={styles.buttonText}>{t.saveProfile || "Create Account"}</Text>
+            <Ionicons name="arrow-forward" size={20} color="#FFF" />
+          </TouchableOpacity>
+
+          <Text style={styles.footerNote}>Your data is securely stored in our encrypted database.</Text>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  keyboardView: { flex: 1, justifyContent: 'center', paddingHorizontal: Theme.spacing.lg },
-  brandSection: { alignItems: 'center', marginBottom: 40, marginTop: -40 },
-  brandTitle: { fontSize: 36, fontWeight: '900', color: '#FFF', letterSpacing: 1 },
-  brandSubtitle: { fontSize: 15, color: 'rgba(255,255,255,0.8)', marginTop: 8 },
-  
-  loginCard: {
-    backgroundColor: '#FFF',
-    borderRadius: Theme.borderRadius.xl,
-    padding: Theme.spacing.lg,
-    paddingVertical: 32,
-    ...Theme.colors.heavyShadow
+  mainContainer: { flex: 1, backgroundColor: Theme.colors.background },
+  scrollContent: { flexGrow: 1 },
+  hero: { 
+    height: 280, 
+    backgroundColor: Theme.colors.primary,
+    justifyContent: 'flex-end'
   },
-  welcomeText: { fontSize: 28, fontWeight: '800', color: Theme.colors.text, letterSpacing: -0.5 },
-  promptText: { fontSize: 15, color: Theme.colors.textMuted, marginTop: 4, marginBottom: 30 },
-  
+  heroOverlay: {
+    padding: Theme.spacing.lg,
+    paddingBottom: 40,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20
+  },
+  brand: {
+    color: '#FFF',
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: 1
+  },
+  langBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: Theme.borderRadius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)'
+  },
+  langText: { color: '#FFF', fontSize: 12, fontWeight: '700' },
+  heroTitle: { 
+    color: '#FFF', 
+    fontSize: Theme.typography.h1.fontSize, 
+    fontWeight: Theme.typography.h1.fontWeight,
+    marginBottom: 8
+  },
+  heroSubtitle: { 
+    color: 'rgba(255,255,255,0.7)', 
+    fontSize: 14, 
+    lineHeight: 20,
+    maxWidth: '80%'
+  },
+  formCard: {
+    flex: 1,
+    backgroundColor: Theme.colors.background,
+    marginTop: -30,
+    borderTopLeftRadius: Theme.borderRadius.lg,
+    borderTopRightRadius: Theme.borderRadius.lg,
+    padding: Theme.spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: Theme.typography.h2.fontSize,
+    fontWeight: Theme.typography.h2.fontWeight,
+    color: Theme.colors.text,
+    marginBottom: Theme.spacing.lg
+  },
   inputGroup: { marginBottom: 20 },
-  label: { fontSize: 13, fontWeight: '700', color: Theme.colors.primary, marginBottom: 8, letterSpacing: 0.5, textTransform: 'uppercase' },
+  label: { 
+    fontSize: 14, 
+    fontWeight: '600', 
+    color: Theme.colors.text, 
+    marginBottom: 8,
+    marginLeft: 4
+  },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFF',
     borderRadius: Theme.borderRadius.md,
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
     paddingHorizontal: 16,
+    ...Theme.colors.cardShadow
   },
   inputIcon: { marginRight: 12 },
-  input: { flex: 1, height: 56, fontSize: 16, color: Theme.colors.text, fontWeight: '500' },
-  
-  forgotBtn: { alignSelf: 'flex-end', marginBottom: 24 },
-  forgotText: { color: Theme.colors.secondary, fontWeight: '600', fontSize: 14 },
-  
-  loginBtn: { borderRadius: Theme.borderRadius.md, overflow: 'hidden', ...Theme.colors.cardShadow },
-  gradientBtn: {
-    flexDirection: 'row',
-    height: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: Theme.borderRadius.md,
+  input: { 
+    flex: 1, 
+    height: 54, 
+    fontSize: 16, 
+    color: Theme.colors.text 
   },
-  loginBtnText: { color: '#FFF', fontSize: 18, fontWeight: '800', marginRight: 8, letterSpacing: 0.5 },
-  
-  registerWrap: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
-  noAccount: { color: Theme.colors.textMuted, fontSize: 15 },
-  registerLink: { color: Theme.colors.primary, fontSize: 15, fontWeight: '800' }
+  row: { flexDirection: 'row', justifyContent: 'space-between' },
+  inputSmall: {
+    backgroundColor: '#FFF',
+    borderRadius: Theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    paddingHorizontal: 16,
+    height: 54,
+    fontSize: 16,
+    color: Theme.colors.text,
+    ...Theme.colors.cardShadow
+  },
+  primaryButton: {
+    backgroundColor: Theme.colors.primary,
+    height: 60,
+    borderRadius: Theme.borderRadius.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    ...Theme.colors.cardShadow
+  },
+  buttonText: { 
+    color: '#FFF', 
+    fontSize: 18, 
+    fontWeight: '700',
+    marginRight: 10
+  },
+  footerNote: {
+    textAlign: 'center',
+    color: Theme.colors.textMuted,
+    fontSize: 12,
+    marginTop: 30,
+    marginBottom: 40
+  }
 });

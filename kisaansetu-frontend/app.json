@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "kisaansetu-frontend",
-    "slug": "kisaansetu-frontend",
+    "name": "AgriSense",
+    "slug": "agrisense",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "kisaansetufrontend",
+    "scheme": "agrisense",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {

@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -9,31 +8,35 @@ export const useApiCall = (endpoint) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const execute = useCallback(async (method = 'GET', payload = null, cacheKey = 'default') => {
+  const execute = useCallback(async (method = 'GET', payload = null, id = 'default') => {
     setLoading(true);
     setError(null);
     try {
-      const config = {
-        method,
-        url: `${API_BASE}${endpoint}`,
-        data: payload,
-        timeout: 10000,
-      };
+      const url = `${API_BASE}${endpoint}`;
+      const config = { method, url, data: payload };
+      
+      if (payload instanceof FormData) {
+        config.headers = { 'Content-Type': 'multipart/form-data' };
+      }
 
       const response = await axios(config);
       setData(response.data);
-      await AsyncStorage.setItem(`@cache_${endpoint}_${cacheKey}`, JSON.stringify(response.data));
+      
+      // Basic cache
+      await AsyncStorage.setItem(`@cache_${endpoint}_${id}`, JSON.stringify(response.data));
       return response.data;
     } catch (err) {
-      console.warn(`API Error ${endpoint}:`, err.message);
-      const cached = await AsyncStorage.getItem(`@cache_${endpoint}_${cacheKey}`);
+      console.error(`Error with API ${endpoint}:`, err);
+      // Try fetch from cache
+      const cached = await AsyncStorage.getItem(`@cache_${endpoint}_${id}`);
       if (cached) {
         const parsed = JSON.parse(cached);
         setData(parsed);
-        setError('OFFLINE_DATA');
+        setError('OFFLINE_FALLBACK');
         return parsed;
+      } else {
+        setError(err.message || 'NetworkError');
       }
-      setError(err.message);
       return null;
     } finally {
       setLoading(false);
