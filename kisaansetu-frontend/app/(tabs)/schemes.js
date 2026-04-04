@@ -1,64 +1,98 @@
-import { useContext, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useContext, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Linking, ActivityIndicator, Platform } from 'react-native';
 import { FarmerContext } from '../../contexts/FarmerContext';
+import { Theme } from '../../constants/theme';
 import { useApiCall } from '../../hooks/useApiCall';
-import * as Speech from 'expo-speech';
-import * as WebBrowser from 'expo-web-browser';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function Schemes() {
-  const { farmer, t } = useContext(FarmerContext);
-  const { data: schemes, loading, error, execute } = useApiCall('/api/schemes/eligible');
-  const [filter, setFilter] = useState('All');
+  const { t, farmer } = useContext(FarmerContext);
+  const [filter, setFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const { data: schemesData, loading, execute } = useApiCall('/api/schemes/eligible');
 
-  useEffect(() => { if (farmer) execute('POST', farmer, 'schemes'); }, [farmer]);
-  useEffect(() => { if (schemes && schemes.length > 0) Speech.speak(t.schemesFound, { language: t.language === 'hi' ? 'hi-IN' : 'pa-IN' }); }, [schemes]);
+  useEffect(() => {
+    execute('POST', { category: farmer?.category || 'General', landAcres: 5.0, state: 'Punjab' });
+  }, [farmer]);
 
-  const openLink = async (url) => await WebBrowser.openBrowserAsync(url || 'https://agricoop.nic.in/');
-  const filtered = schemes ? schemes.filter(s => filter === 'All' || s.type === filter) : [];
+  const filters = [
+    { id: 'all', label: 'All Schemes' },
+    { id: 'central', label: 'Central Govt' },
+    { id: 'state', label: 'State Govt' },
+    { id: 'insurance', label: 'Insurance' }
+  ];
 
-  if (loading) return <ActivityIndicator style={{ flex: 1 }} size="large" color="#1D9E75" />;
+  const visibleSchemes = schemesData?.schemes || Array(4).fill({name:"PM-Kisan Samman Nidhi", state:"Central", description:"Financial support of ₹6000 per year.", benefit:"₹6000/yr"});
 
   return (
     <View style={styles.container}>
-      <View style={styles.chips}>
-        {['All', 'Central', 'Punjab', 'Subsidy'].map(f => (
-          <TouchableOpacity key={f} style={[styles.chip, filter === f && styles.chipActive]} onPress={() => setFilter(f)}>
-            <Text style={[styles.chipText, filter === f && styles.chipTextActive]}>{f}</Text>
-          </TouchableOpacity>
-        ))}
+      <View style={styles.header}>
+        <Text style={styles.pageTitle}>Government Schemes</Text>
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={20} color={Theme.colors.textMuted} style={styles.searchIcon} />
+          <TextInput style={styles.searchInput} placeholder="Search policies and subsidies..." placeholderTextColor={Theme.colors.textMuted} />
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+          {filters.map(f => (
+            <TouchableOpacity key={f.id} style={[styles.filterPill, filter === f.id && styles.activePill]} onPress={() => setFilter(f.id)}>
+              <Text style={[styles.filterT, filter === f.id && styles.activePillT]}>{f.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
-      <ScrollView>
-        {error && <Text style={styles.error}>{t.error}</Text>}
-        {filtered.length === 0 && !error ? <Text style={styles.empty}>{t.noSchemes}</Text> : (
-          filtered.map((scheme, i) => (
-            <View key={i} style={styles.card}>
-              <Text style={styles.title}>{scheme.name}</Text>
-              <Text style={styles.benefit}>{scheme.benefit}</Text>
-              <Text style={styles.desc} numberOfLines={3}>{scheme.description}</Text>
-              <TouchableOpacity style={styles.btn} onPress={() => openLink(scheme.applyUrl)}>
-                <Text style={styles.btnText}>{t.apply || 'Apply'}</Text>
-              </TouchableOpacity>
-            </View>
-          ))
-        )}
+
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {visibleSchemes.map((s, i) => (
+          <View key={i} style={styles.card}>
+             <View style={styles.cardTop}>
+                <View style={[styles.tag, {backgroundColor: s.state==='Central' ? Theme.colors.layer2 : Theme.colors.primaryLight}]}>
+                   <Text style={[styles.tagT, {color: s.state==='Central' ? Theme.colors.textSecondary : Theme.colors.primaryDark}]}>{s.state} Govt</Text>
+                </View>
+                <TouchableOpacity><Ionicons name="bookmark-outline" size={22} color={Theme.colors.textMuted}/></TouchableOpacity>
+             </View>
+             <Text style={styles.sTitle}>{s.name}</Text>
+             <Text style={styles.sDesc}>{s.description}</Text>
+             <View style={styles.benefitContainer}>
+                <Ionicons name="leaf" size={18} color={Theme.colors.primary} />
+                <Text style={styles.benefitT}>{s.benefit}</Text>
+             </View>
+             <TouchableOpacity style={styles.applyBtnWrap} activeOpacity={0.8}>
+                <LinearGradient colors={Theme.colors.gradientPrimary} style={styles.applyBtn}>
+                   <Text style={styles.applyBtnT}>Apply Now</Text>
+                   <Ionicons name="arrow-forward" size={18} color="#FFF" />
+                </LinearGradient>
+             </TouchableOpacity>
+          </View>
+        ))}
+        <View style={{height: 100}} />
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAF5', padding: 15 },
-  chips: { flexDirection: 'row', marginBottom: 15 },
-  chip: { paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20, backgroundColor: '#E0E0E0', marginRight: 10 },
-  chipActive: { backgroundColor: '#1D9E75' },
-  chipText: { color: '#333' },
-  chipTextActive: { color: '#FFF' },
-  card: { backgroundColor: '#FFF', padding: 15, borderRadius: 12, marginBottom: 15, elevation: 2 },
-  title: { fontSize: 18, fontWeight: 'bold', color: '#1A1A2E' },
-  benefit: { color: '#1D9E75', fontWeight: 'bold', marginVertical: 5 },
-  desc: { color: '#666', marginBottom: 10 },
-  btn: { backgroundColor: '#EF9F27', padding: 10, borderRadius: 8, alignItems: 'center' },
-  btnText: { color: '#FFF', fontWeight: 'bold' },
-  empty: { textAlign: 'center', marginTop: 50, fontSize: 16, color: '#666' },
-  error: { textAlign: 'center', color: '#E24B4A', marginTop: 20 }
+  container: { flex: 1, backgroundColor: Theme.colors.background },
+  header: { paddingTop: Platform.OS === 'android' ? 64 : 24, backgroundColor: Theme.colors.background, paddingBottom: 16 },
+  pageTitle: { ...Theme.typography.h1, fontSize: 32, color: Theme.colors.textPrimary, marginHorizontal: 24, marginBottom: 20 },
+  searchBar: { marginHorizontal: 24, backgroundColor: Theme.colors.surfaceContainerHigh, borderRadius: 20, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 56, marginBottom: 20, ...Theme.shadows.ambient },
+  searchIcon: { marginRight: 12 },
+  searchInput: { flex: 1, fontSize: 16, color: Theme.colors.textPrimary, fontWeight: '600', height: '100%' },
+  filterRow: { paddingHorizontal: 24, gap: 12 },
+  filterPill: { backgroundColor: Theme.colors.surfaceContainerLow, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 24 },
+  activePill: { backgroundColor: Theme.colors.primary },
+  filterT: { fontSize: 14, fontWeight: '700', color: Theme.colors.textSecondary },
+  activePillT: { color: '#FFF' },
+  scrollContent: { padding: 24 },
+  card: { backgroundColor: Theme.colors.surface, borderRadius: Theme.borderRadius.xxl, padding: 24, marginBottom: 24, ...Theme.shadows.card },
+  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  tag: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+  tagT: { fontSize: 12, fontWeight: '800', letterSpacing: 0.5, textTransform: 'uppercase' },
+  sTitle: { ...Theme.typography.h2, fontSize: 22, color: Theme.colors.textPrimary, marginBottom: 12, lineHeight: 30 },
+  sDesc: { fontSize: 15, color: Theme.colors.textSecondary, lineHeight: 24, fontWeight: '500', marginBottom: 20 },
+  benefitContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: Theme.colors.surfaceContainerLow, padding: 16, borderRadius: 16, marginBottom: 24 },
+  benefitT: { marginLeft: 12, fontSize: 15, fontWeight: '800', color: Theme.colors.primaryDark },
+  applyBtnWrap: { borderRadius: 24, overflow: 'hidden' },
+  applyBtn: { paddingVertical: 18, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
+  applyBtnT: { color: '#FFF', fontSize: 16, fontWeight: '800' }
 });

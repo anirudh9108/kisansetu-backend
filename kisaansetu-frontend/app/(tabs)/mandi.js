@@ -1,85 +1,110 @@
-import { useContext, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useContext, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { FarmerContext } from '../../contexts/FarmerContext';
+import { Theme } from '../../constants/theme';
 import { useApiCall } from '../../hooks/useApiCall';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router';
-import { VictoryLine, VictoryChart, VictoryTheme, VictoryAxis } from 'victory-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function Mandi() {
-  const { farmer, t } = useContext(FarmerContext);
-  const params = useLocalSearchParams();
-  const { data: mandiData, loading, error, execute } = useApiCall('/api/mandi/prices');
-  
-  const [selectedCrop, setSelectedCrop] = useState(params.crop || 'Wheat');
+  const { farmer } = useContext(FarmerContext);
+  const [selectedCrop, setSelectedCrop] = useState('wheat');
+  const { data: mandiData, loading, execute } = useApiCall('/api/mandi/prices');
 
-  useEffect(() => { if (farmer?.district) execute('GET', null, `mandi_${selectedCrop}`); }, [farmer, selectedCrop]);
+  useEffect(() => {
+    execute('GET', null, `crop=${selectedCrop}&district=${farmer?.district || 'Ludhiana'}`);
+  }, [selectedCrop]);
 
-  const handleAlert = () => alert(t.alertSet);
-  const crops = ['Wheat', 'Paddy', 'Maize', 'Cotton', 'Mustard'];
-  const trendData = [{ x: 1, y: 2100 }, { x: 2, y: 2150 }, { x: 3, y: 2140 }, { x: 4, y: 2180 }, { x: 5, y: 2200 }, { x: 6, y: 2250 }, { x: 7, y: 2275 }];
+  const crops = [
+    { id: 'wheat', icon: '🌾', label: 'Wheat' },
+    { id: 'paddy', icon: '🌾', label: 'Paddy' },
+    { id: 'maize', icon: '🌽', label: 'Maize' },
+    { id: 'cotton', icon: '🌿', label: 'Cotton' }
+  ];
 
   return (
-    <ScrollView style={styles.container}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipContainer}>
-        {crops.map(c => (
-           <TouchableOpacity key={c} style={[styles.chip, selectedCrop === c && styles.chipActive]} onPress={() => setSelectedCrop(c)}>
-             <Text style={[styles.chipText, selectedCrop === c && styles.chipTextActive]}>{c}</Text>
-           </TouchableOpacity>
-        ))}
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.pageTitle}>Mandi Rates</Text>
+      </View>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 24, marginHorizontal: -24, paddingHorizontal: 24 }} contentContainerStyle={{paddingRight:48}}>
+          {crops.map(c => (
+            <TouchableOpacity key={c.id} style={[styles.cropTab, selectedCrop === c.id && styles.cropTabAct]} onPress={() => setSelectedCrop(c.id)} activeOpacity={0.8}>
+               <Text style={styles.cropTabEmoji}>{c.icon}</Text>
+               <Text style={[styles.cropTabT, selectedCrop === c.id && styles.cropTabTAct]}>{c.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <LinearGradient colors={Theme.colors.gradientAccent} style={styles.alertCard}>
+           <View style={styles.alertIconBg}>
+              <Ionicons name="trending-up" size={24} color={Theme.colors.secondary} />
+           </View>
+           <View style={{flex: 1}}>
+              <Text style={styles.alertTitle}>Market Insight</Text>
+              <Text style={styles.alertDesc}>{mandiData?.bestSellWindow?.recommendation || 'Prices are expected to rise. Hold stock if possible.'}</Text>
+           </View>
+        </LinearGradient>
+
+        <Text style={styles.sectionHeading}>Nearby Markets</Text>
+
+        {loading ? <ActivityIndicator size="large" color={Theme.colors.primary} /> : 
+          (mandiData?.mandis || [
+            {name: 'Ludhiana Main', distance: '4km', todayPrice: 2125, yesterdayPrice: 2100, trend: 'up'},
+            {name: 'Sahnewal Mandi', distance: '12km', todayPrice: 2110, yesterdayPrice: 2130, trend: 'down'}
+          ]).map((m, i) => {
+            const isUp = m.trend === 'up';
+            return (
+              <View key={i} style={styles.marketCard}>
+                 <View style={{flex: 1}}>
+                    <Text style={styles.mName}>{m.name}</Text>
+                    <View style={styles.mDistWrap}>
+                       <Ionicons name="location" size={14} color={Theme.colors.textMuted} />
+                       <Text style={styles.mDistT}>{m.distance}</Text>
+                    </View>
+                 </View>
+                 <View style={{alignItems: 'flex-end'}}>
+                    <Text style={styles.mPrice}>₹{m.todayPrice}</Text>
+                    <View style={[styles.trendPill, {backgroundColor: isUp ? Theme.colors.successLight : Theme.colors.errorLight}]}>
+                       <Ionicons name={isUp ? "arrow-up" : "arrow-down"} size={12} color={isUp ? Theme.colors.primaryDark : Theme.colors.danger} />
+                       <Text style={[styles.trendT, {color: isUp ? Theme.colors.primaryDark : Theme.colors.danger}]}>₹{Math.abs(m.todayPrice - m.yesterdayPrice)}</Text>
+                    </View>
+                 </View>
+              </View>
+            )
+        })}
+
+        <View style={{height: 120}} />
       </ScrollView>
-
-      {loading ? <ActivityIndicator size="large" color="#378ADD" style={{marginTop: 50}}/> : error ? <Text style={styles.error}>{t.error}</Text> : (
-        <>
-          {mandiData && Array.isArray(mandiData) && mandiData.length > 0 ? mandiData.slice(0,3).map((mandi, i) => (
-            <View key={i} style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.mandiName}>{mandi.mandi || mandi.market}</Text>
-                <Ionicons name="arrow-up" size={24} color="#1D9E75" />
-              </View>
-              <Text style={styles.priceLabel}>{t.todayPrice}</Text>
-              <Text style={styles.price}>₹{mandi.modal_price || mandi.price || 2275}</Text>
-            </View>
-          )) : (
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.mandiName}>{farmer?.district || 'Local'} Mandi</Text>
-                <Ionicons name="arrow-up" size={24} color="#1D9E75" />
-              </View>
-              <Text style={styles.priceLabel}>{t.todayPrice}</Text>
-              <Text style={styles.price}>₹2275</Text>
-            </View>
-          )}
-
-          <View style={styles.chartCard}>
-            <Text style={styles.chartTitle}>7-Day Trend ({selectedCrop})</Text>
-            <View pointerEvents="none" style={{alignItems: 'center', marginLeft: -20}}>
-              <VictoryChart height={200} padding={{ top: 20, bottom: 40, left: 60, right: 20 }}>
-                <VictoryAxis tickFormat={(t) => `Day ${Math.floor(t)}`} style={{tickLabels: {fontSize: 10}}} />
-                <VictoryAxis dependentAxis tickFormat={(x) => `₹${x}`} style={{tickLabels: {fontSize: 10}}}/>
-                <VictoryLine data={trendData} style={{ data: { stroke: "#378ADD", strokeWidth: 3 } }} />
-              </VictoryChart>
-            </View>
-          </View>
-        </>
-      )}
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAF5', padding: 15 },
-  chipContainer: { flexDirection: 'row', marginBottom: 20 },
-  chip: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#E0E0E0', borderRadius: 20, marginRight: 10 },
-  chipActive: { backgroundColor: '#378ADD' },
-  chipText: { color: '#333', fontWeight: 'bold' },
-  chipTextActive: { color: '#FFF' },
-  card: { backgroundColor: '#FFF', padding: 20, borderRadius: 12, marginBottom: 15, elevation: 2 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  mandiName: { fontSize: 18, fontWeight: 'bold', color: '#1A1A2E' },
-  priceLabel: { fontSize: 14, color: '#666', marginTop: 10 },
-  price: { fontSize: 32, fontWeight: 'bold', color: '#1D9E75', marginTop: 5 },
-  chartCard: { backgroundColor: '#FFF', padding: 15, borderRadius: 12, marginBottom: 15, elevation: 2 },
-  chartTitle: { fontSize: 16, fontWeight: 'bold', color: '#1A1A2E', marginBottom: 10 },
-  error: { color: '#E24B4A', textAlign: 'center', marginTop: 20 }
+  container: { flex: 1, backgroundColor: Theme.colors.background },
+  header: { paddingTop: Platform.OS === 'android' ? 64 : 24, paddingHorizontal: 24, paddingBottom: 16 },
+  pageTitle: { ...Theme.typography.h1, fontSize: 32, color: Theme.colors.textPrimary },
+  scrollContent: { paddingHorizontal: 24 },
+  
+  cropTab: { backgroundColor: Theme.colors.surfaceContainerHigh, paddingHorizontal: 20, paddingVertical: 14, borderRadius: 24, marginRight: 12, flexDirection: 'row', alignItems: 'center' },
+  cropTabAct: { backgroundColor: Theme.colors.primaryLight },
+  cropTabEmoji: { fontSize: 20, marginRight: 8 },
+  cropTabT: { fontSize: 16, fontWeight: '700', color: Theme.colors.textSecondary },
+  cropTabTAct: { color: Theme.colors.primaryDark, fontWeight: '800' },
+
+  alertCard: { borderRadius: Theme.borderRadius.xxl, padding: 24, flexDirection: 'row', alignItems: 'center', marginBottom: 32, ...Theme.shadows.ambient },
+  alertIconBg: { width: 48, height: 48, borderRadius: 24, backgroundColor: Theme.colors.surface, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
+  alertTitle: { fontSize: 16, fontWeight: '800', color: '#FFF', marginBottom: 4 },
+  alertDesc: { fontSize: 14, color: 'rgba(255,255,255,0.9)', lineHeight: 20, fontWeight: '600' },
+
+  sectionHeading: { fontSize: 20, fontWeight: '800', color: Theme.colors.textPrimary, marginBottom: 16 },
+  marketCard: { backgroundColor: Theme.colors.surface, borderRadius: Theme.borderRadius.xl, padding: 24, flexDirection: 'row', alignItems: 'center', marginBottom: 16, ...Theme.shadows.card },
+  mName: { fontSize: 18, fontWeight: '800', color: Theme.colors.textPrimary, marginBottom: 6 },
+  mDistWrap: { flexDirection: 'row', alignItems: 'center' },
+  mDistT: { marginLeft: 4, fontSize: 14, color: Theme.colors.textSecondary, fontWeight: '600' },
+  mPrice: { fontSize: 24, fontWeight: '800', color: Theme.colors.textPrimary, marginBottom: 6 },
+  trendPill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  trendT: { fontSize: 13, fontWeight: '800', marginLeft: 4 }
 });

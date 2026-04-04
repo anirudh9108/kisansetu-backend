@@ -1,6 +1,5 @@
 import os
 from motor.motor_asyncio import AsyncIOMotorClient
-import certifi
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -8,29 +7,31 @@ load_dotenv()
 class MongoDBClient:
     client: AsyncIOMotorClient = None
     db_name: str = None
+    _connected: bool = False
 
     @classmethod
     async def connect(cls):
         uri = os.environ.get("MONGODB_URI")
         cls.db_name = os.environ.get("MONGODB_DB_NAME", "KisaanSetu")
         if not uri:
-            raise ValueError("MONGODB_URI not set in environment variables")
-        
-        cls.client = AsyncIOMotorClient(
-            uri, 
-            tls=True,
-            tlsAllowInvalidCertificates=True,
-            serverSelectionTimeoutMS=2000
-        )
+            print("WARNING: MONGODB_URI not set. Running in offline/mock mode.")
+            return
+
         try:
-            # The ismaster command is cheap and does not require auth.
-            await cls.client.admin.command('ismaster')
-            print(f"Successfully connected to MongoDB database: {cls.db_name}")
+            cls.client = AsyncIOMotorClient(
+                uri,
+                serverSelectionTimeoutMS=3000,
+                connectTimeoutMS=3000,
+                socketTimeoutMS=5000,
+            )
+            await cls.client.admin.command('ping')
+            cls._connected = True
+            print(f"SUCCESS: Connected to MongoDB: {cls.db_name}")
         except Exception as e:
-            print(f"CRITICAL: Could not connect to Atlas: {e}")
-            print("FALLBACK: Switching to local mock client to unblock UI demo.")
-            # We'll continue running so the API doesn't crash Main, 
-            # though DB ops will still fail unless we mock them in routers.
+            print(f"WARNING: MongoDB connection failed: {e}")
+            print("Running in OFFLINE mode - API will return mock/fallback data.")
+            cls.client = None
+            cls._connected = False
 
     @classmethod
     async def close(cls):
@@ -40,10 +41,13 @@ class MongoDBClient:
 
     @classmethod
     def get_db(cls):
-        if cls.client is None:
-            raise RuntimeError("Database not initialized. Call connect() first.")
+        if cls.client is None or not cls._connected:
+            return None
         return cls.client[cls.db_name]
 
+    @classmethod
+    def is_connected(cls):
+        return cls._connected
+
 def get_mongodb():
-    """ Returns the MongoDB database instance. """
     return MongoDBClient.get_db()

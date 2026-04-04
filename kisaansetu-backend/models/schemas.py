@@ -4,31 +4,41 @@ from datetime import datetime
 
 class FarmerProfile(BaseModel):
     uid: str
-    name: Optional[str] = "Farmer"
-    district: Optional[str] = "Unknown"
-    category: Optional[str] = "General"
-    landAcres: Optional[float] = 0.0
-    soilType: Optional[str] = "Normal"
-    waterSource: Optional[str] = "Canal"
-    crops: Optional[List[str]] = []
-    createdAt: Optional[datetime] = None
+    name: str = "Anonymous"
+    district: str = "Unknown"
+    category: str = "General"
+    landAcres: float = 0.0
+    soilType: str = "Normal"
+    waterSource: str = "Rainfed"
+    crops: List[str] = []
+    isNewUser: Optional[bool] = False
+    createdAt: Optional[str] = None
+
+class SchemeEligibilityRequest(BaseModel):
+    category: str = "General"
+    landAcres: float = 0.0
+    state: str = "Punjab"
+    crop: Optional[str] = None
 
 class IrrigationLogRequest(BaseModel):
     uid: str
-    crop: str
     method: str
     durationHours: float
     acres: float
-
-class SchemeEligibilityRequest(BaseModel):
-    uid: str
-    crop: str
-    landAcres: float
-    district: str
-    category: str
+    date: Optional[str] = None
 
 class CropRecommendationRequest(BaseModel):
-    uid: str
-    soilType: str
-    waterSource: str
-    month: int
+    uid: Optional[str] = "anon"
+    soilType: Optional[str] = "Loamy"
+    waterSource: Optional[str] = "Rainfed"
+    month: Optional[int] = 6
+    landAcres: float = 5.0
+    temperature: float = 25.0
+    humidity: float = 60.0
+    rainfall: float = 100.0
+    lang: Optional[str] = "pa"
+    # Added N, P, K, ph for the Kaggle Dataset ML Model
+    n: Optional[float] = 90.0
+    p: Optional[float] = 42.0
+    k: Optional[float] = 43.0
+    ph: Optional[float] = 6.5

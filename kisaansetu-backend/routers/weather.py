@@ -1,71 +1,39 @@
-﻿from fastapi import APIRouter
-import httpx
-import os
+
+from fastapi import APIRouter
+from datetime import datetime
 
 router = APIRouter(prefix="/api/weather", tags=["weather"])
 
-def get_farming_tip(temp: float, condition: str) -> tuple[str, str]:
-    cond = condition.lower()
-    if "rain" in cond or "drizzle" in cond:
-        return ("Delay chemical sprays due to rain.", "ਮੀਂਹ ਕਾਰਨ ਰਸਾਇਣਕ ਸਪਰੇਅ ਵਿੱਚ ਦੇਰੀ ਕਰੋ।")
-    elif temp > 35:
-        return ("High temperature detected. Irrigate in the evening.", "ਤਾਪਮਾਨ ਜ਼ਿਆਦਾ ਹੈ। ਸ਼ਾਮ ਨੂੰ ਸਿੰਚਾਈ ਕਰੋ।")
-    elif temp < 10:
-        return ("Low temperature. Risk of frost, apply light irrigation.", "ਤਾਪਮਾਨ ਘੱਟ ਹੈ, ਫਸਲ ਨੂੰ ਕੋਰੇ ਤੋਂ ਬਚਾਉਣ ਲਈ ਹਲਕੀ ਸਿੰਚਾਈ ਕਰੋ।")
-    elif "clear" in cond:
-        return ("Favorable weather for field operations.", "ਖੇਤੀ ਦੇ ਕੰਮਾਂ ਲਈ ਢੁਕਵਾਂ ਮੌਸਮ।")
-    else:
-        return ("Monitor soil moisture before irrigation.", "ਸਿੰਚਾਈ ਤੋਂ ਪਹਿਲਾਂ ਮਿੱਟੀ ਦੀ ਨਮੀ ਦੀ ਜਾਂਚ ਕਰੋ।")
+# Historical Agriculture Almanac (Typical conditions for Punjab)
+ALMANAC = {
+    6: {"temp": 38, "rain": 150, "hum": 60, "ph": 6.8, "n": 90, "p": 42, "k": 43}, # June (Kharif Start)
+    7: {"temp": 34, "rain": 250, "hum": 80, "ph": 6.5, "n": 85, "p": 40, "k": 40}, # July (Monsoon)
+    10: {"temp": 28, "rain": 20, "hum": 50, "ph": 7.0, "n": 100, "p": 45, "k": 50}, # Oct (Rabi Start)
+    11: {"temp": 22, "rain": 10, "hum": 45, "ph": 7.1, "n": 105, "p": 48, "k": 55}, # Nov
+}
 
-@router.get("/{district}")
-async def get_weather(district: str):
-    api_key = os.environ.get("OPENWEATHER_API_KEY")
-    if not api_key:
-        return {
-            "temp": 25.0,
-            "condition": "Clear",
-            "conditionPA": "ਸਾਫ਼",
-            "humidity": 50,
-            "farmingTip": "Favorable weather",
-            "farmingTipPA": "ਢੁਕਵਾਂ ਮੌਸਮ"
-        }
-        
-    url = "https://api.openweathermap.org/data/2.5/weather"
-    params = {
-        "q": f"{district},Punjab,IN",
-        "appid": api_key,
-        "units": "metric",
-        "lang": "pa"
-    }
+@router.get("/details")
+async def get_almanac_details():
+    # Use current month for zero-key auto detection
+    month = datetime.now().month
+    data = ALMANAC.get(month, ALMANAC[6]) # Default to June if month not in map
     
-    async with httpx.AsyncClient() as client:
-        try:
-            resp = await client.get(url, params=params, timeout=10)
-            resp.raise_for_status()
-            data = resp.json()
-            
-            temp = data["main"]["temp"]
-            humidity = data["main"]["humidity"]
-            condition = data["weather"][0]["main"]
-            condition_pa = data["weather"][0]["description"]
-            
-            tip, tip_pa = get_farming_tip(temp, condition)
-            
-            return {
-                "temp": temp,
-                "condition": condition,
-                "conditionPA": condition_pa,
-                "humidity": humidity,
-                "farmingTip": tip,
-                "farmingTipPA": tip_pa
-            }
-        except Exception as e:
-            print(f"Weather API Error: {e}")
-            return {
-                "temp": 0.0,
-                "condition": "Error",
-                "conditionPA": "ਗਲਤੀ",
-                "humidity": 0,
-                "farmingTip": "Unable to fetch weather.",
-                "farmingTipPA": "ਮੌਸਮ ਬਾਰੇ ਜਾਣਕਾਰੀ ਪ੍ਰਾਪਤ ਕਰਨ ਵਿੱਚ ਅਸਮਰੱਥ."
-            }
+    return {
+        "temperature": data["temp"],
+        "humidity": data["hum"],
+        "rainfall": data["rain"],
+        "ph": data["ph"],
+        "n": data["n"], "p": data["p"], "k": data["k"],
+        "address": "Local District (Almanac Data)"
+    }
+
+@router.get("/current")
+async def get_current_weather():
+    month = datetime.now().month
+    data = ALMANAC.get(month, ALMANAC[6])
+    return {
+        "temp": data["temp"], 
+        "condition": "Season Normal", 
+        "humidity": data["hum"], 
+        "farmingTip": "Follow seasonal package of practices."
+    }

@@ -1,96 +1,55 @@
+
 import React, { createContext, useState, useEffect } from 'react';
-import axios from 'axios';
-import { API_BASE } from '../config/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import pa from '../translations/pa';
 import hi from '../translations/hi';
+import en from '../translations/en';
 
-export const FarmerContext = createContext({
-  farmer: null,
-  updateFarmer: () => {},
-  language: 'pa',
-  setLanguage: () => {},
-  t: {},
-  loading: true,
-});
+export const FarmerContext = createContext();
 
-export const FarmerProvider = ({ children, uid }) => {
+export const FarmerProvider = ({ children }) => {
   const [farmer, setFarmer] = useState(null);
-  const [language, setLanguage] = useState('pa');
+  const [language, setLanguage] = useState('pa'); // Default to Punjabi
   const [loading, setLoading] = useState(true);
 
-  // t maps to the active translation dictionary
-  const t = language === 'hi' ? hi : pa;
+  const t = language === 'en' ? en : (language === 'hi' ? hi : pa);
 
   useEffect(() => {
-    if (!uid) {
-      setLoading(false);
-      return;
-    }
+    loadProfile();
+  }, []);
 
-    const fetchFarmer = async () => {
-      try {
-        const response = await axios.get(`${API_BASE}/api/farmer/profile/${uid}`);
-        if (response.data) {
-          const data = response.data;
-          setFarmer(data);
-          if (data.preferredLanguage) {
-            setLanguage(data.preferredLanguage);
-          }
-        }
-      } catch (err) {
-        console.warn("API Fetch Error:", err.message);
-        // We could add local storage fallback here if needed
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchFarmer();
-  }, [uid]);
-
-  const updateFarmer = async (newData) => {
-    if (!uid) return;
+  const loadProfile = async () => {
     try {
-      // Ensure specific field alignment with MongoDB schema
-      const updatedProfile = { 
-        ...farmer, 
-        ...newData, 
-        uid,
-        preferredLanguage: newData.preferredLanguage || language
-      };
-
-      // Remove any client-side only fields before sending to API
-      const { isNewUser, ...payload } = updatedProfile;
+      const savedLang = await AsyncStorage.getItem('@language');
+      if (savedLang) setLanguage(savedLang);
       
-      await axios.post(`${API_BASE}/api/farmer/profile`, payload);
-      
-      setFarmer(updatedProfile);
-      if (newData.preferredLanguage) {
-        setLanguage(newData.preferredLanguage);
+      const stored = await AsyncStorage.getItem('@farmer_profile');
+      if (stored) {
+        setFarmer(JSON.parse(stored));
       }
-    } catch (err) {
-      console.error("API Update Error:", err.message);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const changeLanguage = async (newLang) => {
-    setLanguage(newLang);
-    if (uid) {
-      try {
-        await axios.post(`${API_BASE}/api/farmer/profile`, { 
-            ...farmer,
-            uid,
-            preferredLanguage: newLang 
-        });
-        setFarmer(prev => prev ? { ...prev, preferredLanguage: newLang } : null);
-      } catch (err) {
-        console.error("API Language Update Error:", err.message);
-      }
-    }
+  const updateFarmer = async (data) => {
+    const updated = { ...farmer, ...data };
+    setFarmer(updated);
+    await AsyncStorage.setItem('@farmer_profile', JSON.stringify(updated));
+  };
+
+  const changeLanguage = async (lang) => {
+    setLanguage(lang);
+    await AsyncStorage.setItem('@language', lang);
   };
 
   return (
-    <FarmerContext.Provider value={{ farmer, updateFarmer, language, setLanguage: changeLanguage, t, loading }}>
+    <FarmerContext.Provider value={{ 
+      farmer, updateFarmer, language, setLanguage: changeLanguage, 
+      t, loading 
+    }}>
       {children}
     </FarmerContext.Provider>
   );
