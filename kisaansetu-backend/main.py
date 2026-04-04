@@ -25,7 +25,7 @@ from routers import farmer, schemes, crops, disease, mandi, water, weather
 # CORS Setup
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"http://(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?",
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -43,3 +43,4 @@ app.include_router(weather.router)
 @app.get("/")
 def root():
     return {"message": "Welcome to the AgriSense API"}
+
